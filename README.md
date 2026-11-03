@@ -224,6 +224,16 @@ To immediately evaluate without manually registering, the following pre-seeded t
 
 ## 🚢 Deployment
 
+### Deploying to Vercel (Recommended)
+1. Push your repository to **GitHub**.
+2. Go to [Vercel Dashboard](https://vercel.com) and click **"Add New Project"** -> **"Import"** your GitHub repository.
+3. In **Project Settings** -> **Environment Variables**, configure:
+   - `MONGODB_URI`: Your MongoDB Atlas connection string (`mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/connect_platform?retryWrites=true&w=majority`)
+   - `JWT_SECRET`: A secure random secret string (min 32 characters)
+   - `JWT_EXPIRES_IN`: `7d`
+   - `NODE_ENV`: `production`
+4. Deploy! Vercel automatically runs `vercel.json` rewrites, executes `/api/index.js` as serverless functions, and serves all frontend pages from `/public`.
+
 ### Render / Railway / Cloud Run / VPS
 1. Set the build command to `npm install`.
 2. Set the start command to `node server.js`.

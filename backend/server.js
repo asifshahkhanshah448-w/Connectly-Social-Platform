@@ -38,6 +38,33 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve frontend static assets from /public
 app.use(express.static(publicDir));
 
+// Database auto-connection middleware (crucial for Vercel serverless functions)
+app.use(async (req, res, next) => {
+  // Skip DB connection for static files
+  if (
+    req.path.startsWith('/css') ||
+    req.path.startsWith('/images') ||
+    req.path.startsWith('/js') ||
+    req.path.endsWith('.html') ||
+    req.path.endsWith('.svg') ||
+    req.path.endsWith('.ico')
+  ) {
+    return next();
+  }
+
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('Database connection error in request middleware:', err.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Database connection failed. Please ensure MONGODB_URI is properly configured.',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    });
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -85,8 +112,8 @@ export async function startServer() {
   }
 }
 
-// Auto-start if executed directly
-if (process.argv[1] && process.argv[1].endsWith('backend/server.js')) {
+// Auto-start if executed directly in Node
+if (process.argv[1] && (process.argv[1].endsWith('backend/server.js') || process.argv[1].endsWith('server.js'))) {
   startServer();
 }
 

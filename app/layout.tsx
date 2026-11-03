@@ -2,17 +2,17 @@ import type {Metadata} from 'next';
 import './globals.css'; // Global styles
 
 export const metadata: Metadata = {
-  title: 'My Google AI Studio App',
-  description: 'An application built with Google AI Studio.',
+  title: 'CONNECT – Professional Full-Stack Social Media Platform',
+  description: 'A minimal, modern full-stack social media web application with user authentication, profiles, posts, comments, likes, and follow system.',
   openGraph: {
-    title: 'My Google AI Studio App',
-    description: 'An application built with Google AI Studio.',
+    title: 'CONNECT – Professional Full-Stack Social Media Platform',
+    description: 'A minimal, modern full-stack social media web application with user authentication, profiles, posts, comments, likes, and follow system.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'My Google AI Studio App',
-    description: 'An application built with Google AI Studio.',
+    title: 'CONNECT – Professional Full-Stack Social Media Platform',
+    description: 'A minimal, modern full-stack social media web application with user authentication, profiles, posts, comments, likes, and follow system.',
   },
 };
 
