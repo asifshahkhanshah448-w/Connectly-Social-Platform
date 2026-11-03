@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log In - CONNECT</title>
+  <meta name="description" content="Sign in to your CONNECT professional account.">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="/images/logo.svg" type="image/svg+xml">
+</head>
+<body style="background-color: var(--bg-app);">
+
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-header">
+        <a href="/">
+          <img src="/images/logo.svg" alt="CONNECT" class="auth-logo">
+        </a>
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Log in to your CONNECT account</p>
+      </div>
+
+      <div id="auth-alert" class="auth-alert"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="login-identifier">Username or Email</label>
+          <input type="text" id="login-identifier" class="form-input" placeholder="e.g. alexrivera or alex@example.com" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="btn-auth-submit">Sign In</button>
+      </form>
+
+      <!-- 1-Click Quick Demo Sign-In for evaluators -->
+      <div class="demo-accounts-box">
+        <div class="demo-accounts-title">Quick Demo Accounts (Password: Password123!)</div>
+        <div>
+          <span class="demo-account-chip" onclick="fillDemo('alexrivera', 'Password123!')">Alex Rivera</span>
+          <span class="demo-account-chip" onclick="fillDemo('elenavance', 'Password123!')">Elena Vance</span>
+          <span class="demo-account-chip" onclick="fillDemo('marcuschen', 'Password123!')">Marcus Chen</span>
+          <span class="demo-account-chip" onclick="fillDemo('sophiapatel', 'Password123!')">Sophia Patel</span>
+        </div>
+      </div>
+
+      <div class="auth-footer">
+        Don't have an account? <a href="/register.html">Create an account</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    function fillDemo(username, password) {
+      document.getElementById('login-identifier').value = username;
+      document.getElementById('login-password').value = password;
+      document.getElementById('login-form').requestSubmit();
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // If already logged in, redirect to feed
+      if (API.getToken()) {
+        try {
+          const res = await API.get('/api/auth/me');
+          if (res.success && res.user) {
+            window.location.href = '/';
+            return;
+          }
+        } catch {
+          API.setToken(null);
+        }
+      }
+
+      const form = document.getElementById('login-form');
+      const alertBox = document.getElementById('auth-alert');
+      const submitBtn = document.getElementById('btn-login-submit');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alertBox.className = 'auth-alert';
+        alertBox.style.display = 'none';
+
+        const identifier = document.getElementById('login-identifier').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        if (!identifier || !password) {
+          alertBox.className = 'auth-alert error';
+          alertBox.textContent = 'Please enter both identifier and password.';
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in...';
+
+        try {
+          const res = await API.post('/api/auth/login', { identifier, password });
+          if (res.success && res.token) {
+            API.setToken(res.token);
+            API.setCurrentUser(res.user);
+            alertBox.className = 'auth-alert success';
+            alertBox.textContent = 'Login successful! Redirecting...';
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect') || '/';
+            setTimeout(() => {
+              window.location.href = redirect;
+            }, 500);
+          }
+        } catch (err) {
+          alertBox.className = 'auth-alert error';
+          alertBox.textContent = err.message || 'Login failed. Please check credentials.';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign In';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

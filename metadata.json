@@ -1,0 +1,6 @@
+{
+  "name": "CONNECT - Social Media Platform",
+  "description": "A minimal, modern full-stack social media web application with user authentication, profiles, posts, comments, likes, and follow system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - CONNECT</title>
+  <meta name="description" content="Create a new account on CONNECT social media platform.">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" href="/images/logo.svg" type="image/svg+xml">
+</head>
+<body style="background-color: var(--bg-app);">
+
+  <div class="auth-wrapper">
+    <div class="auth-card" style="max-width: 460px;">
+      <div class="auth-header">
+        <a href="/">
+          <img src="/images/logo.svg" alt="CONNECT" class="auth-logo">
+        </a>
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-subtitle">Join the CONNECT community of engineers & creators</p>
+      </div>
+
+      <div id="auth-alert" class="auth-alert"></div>
+
+      <form id="register-form">
+        <div class="form-group">
+          <label class="form-label" for="reg-name">Full Name</label>
+          <input type="text" id="reg-name" class="form-input" placeholder="e.g. Sarah Connor" required maxlength="60">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-username">Username</label>
+          <input type="text" id="reg-username" class="form-input" placeholder="e.g. sarahc (letters, numbers, _)" required minlength="3" maxlength="30">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Email Address</label>
+          <input type="email" id="reg-email" class="form-input" placeholder="e.g. sarah@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-password">Password</label>
+          <input type="password" id="reg-password" class="form-input" placeholder="At least 6 characters" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-avatar">Profile Picture URL (Optional)</label>
+          <input type="url" id="reg-avatar" class="form-input" placeholder="https://images.unsplash.com/...">
+          <span style="font-size: 0.74rem; color: var(--text-dim); display: block; margin-top: 4px;">Leave blank for an automated custom avatar.</span>
+        </div>
+
+        <button type="submit" id="btn-register-submit" class="btn-auth-submit">Create Account</button>
+      </form>
+
+      <div class="auth-footer">
+        Already have an account? <a href="/login.html">Sign in</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('register-form');
+      const alertBox = document.getElementById('auth-alert');
+      const submitBtn = document.getElementById('btn-register-submit');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        alertBox.className = 'auth-alert';
+        alertBox.style.display = 'none';
+
+        const name = document.getElementById('reg-name').value.trim();
+        const username = document.getElementById('reg-username').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const avatar = document.getElementById('reg-avatar').value.trim();
+
+        if (!name || !username || !email || !password) {
+          alertBox.className = 'auth-alert error';
+          alertBox.textContent = 'Please fill in all required fields.';
+          return;
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+          alertBox.className = 'auth-alert error';
+          alertBox.textContent = 'Username can only contain letters, numbers, and underscores.';
+          return;
+        }
+
+        if (password.length < 6) {
+          alertBox.className = 'auth-alert error';
+          alertBox.textContent = 'Password must be at least 6 characters long.';
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating account...';
+
+        try {
+          const res = await API.post('/api/auth/register', {
+            name,
+            username,
+            email,
+            password,
+            avatar,
+          });
+
+          if (res.success && res.token) {
+            API.setToken(res.token);
+            API.setCurrentUser(res.user);
+            alertBox.className = 'auth-alert success';
+            alertBox.textContent = 'Account created successfully! Redirecting...';
+
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 600);
+          }
+        } catch (err) {
+          alertBox.className = 'auth-alert error';
+          alertBox.textContent = err.message || 'Registration failed. Please check your details.';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Account';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
