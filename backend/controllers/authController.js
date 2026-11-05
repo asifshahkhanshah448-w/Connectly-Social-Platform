@@ -1,14 +1,17 @@
 import User from '../models/User.js';
-import { generateToken } from '../middleware/auth.js';
+import { generateToken, isValidMediaUrl } from '../middleware/auth.js';
 
 export async function register(req, res, next) {
   try {
-    const { name, username, email, password, avatar } = req.body;
+    const { name, username, email, password, avatar } = req.body || {};
 
-    if (!name || !name.trim()) {
+    if (typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ success: false, message: 'Full name is required.' });
     }
-    if (!username || !username.trim()) {
+    if (name.trim().length > 60) {
+      return res.status(400).json({ success: false, message: 'Full name cannot exceed 60 characters.' });
+    }
+    if (typeof username !== 'string' || !username.trim()) {
       return res.status(400).json({ success: false, message: 'Username is required.' });
     }
     const cleanUsername = username.trim().toLowerCase();
@@ -19,16 +22,23 @@ export async function register(req, res, next) {
       return res.status(400).json({ success: false, message: 'Username can only contain letters, numbers, and underscores.' });
     }
 
-    if (!email || !email.trim()) {
+    if (typeof email !== 'string' || !email.trim()) {
       return res.status(400).json({ success: false, message: 'Email address is required.' });
     }
     const cleanEmail = email.trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+    if (cleanEmail.length > 254 || !/^\S+@\S+\.\S+$/.test(cleanEmail)) {
       return res.status(400).json({ success: false, message: 'Please provide a valid email address.' });
     }
 
-    if (!password || password.length < 6) {
+    if (typeof password !== 'string' || password.length < 6) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+    }
+    if (password.length > 128) {
+      return res.status(400).json({ success: false, message: 'Password cannot exceed 128 characters.' });
+    }
+
+    if (avatar !== undefined && avatar !== null && avatar !== '' && !isValidMediaUrl(avatar)) {
+      return res.status(400).json({ success: false, message: 'Invalid avatar URL. Only HTTP, HTTPS, and safe raster images are allowed.' });
     }
 
     // Check existing email or username
@@ -49,7 +59,7 @@ export async function register(req, res, next) {
       username: cleanUsername,
       email: cleanEmail,
       passwordHash,
-      avatar: (avatar && avatar.trim()) || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name.trim())}&backgroundColor=cbdad2&textColor=2d4438`,
+      avatar: (typeof avatar === 'string' && avatar.trim()) || '/images/default-avatar.svg',
       bio: '',
     });
 
@@ -70,19 +80,39 @@ export async function register(req, res, next) {
 
 export async function login(req, res, next) {
   try {
-    const { identifier, password } = req.body;
+    const { identifier, password } = req.body || {};
 
-    if (!identifier || !password) {
+    if (typeof identifier !== 'string' || typeof password !== 'string' || !identifier.trim() || !password) {
       return res.status(400).json({
         success: false,
         message: 'Username/email and password are required.',
       });
     }
 
-    const cleanIdentifier = identifier.trim().toLowerCase();
-    // Allow login by email or username
+    const rawIdentifier = identifier.trim();
+    const normalizedInput =
+      rawIdentifier.startsWith('@') && rawIdentifier.indexOf('@', 1) === -1
+        ? rawIdentifier.slice(1).trim()
+        : rawIdentifier;
+
+    if (!normalizedInput || normalizedInput.length > 254 || password.length > 128) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials. Please check your username/email and password.',
+      });
+    }
+
+    const cleanIdentifier = normalizedInput.toLowerCase();
+    const escaped = normalizedInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // Case-resilient & whitespace-resilient query for both email and username
     const user = await User.findOne({
-      $or: [{ email: cleanIdentifier }, { username: cleanIdentifier }],
+      $or: [
+        { email: cleanIdentifier },
+        { username: cleanIdentifier },
+        { email: { $regex: new RegExp(`^\\s*${escaped}\\s*$`, 'i') } },
+        { username: { $regex: new RegExp(`^\\s*${escaped}\\s*$`, 'i') } },
+      ],
     });
 
     if (!user) {

@@ -42,29 +42,29 @@ const Auth = {
       const handleEl = userCard.querySelector('.sidebar-user-handle');
       const linkEl = userCard.querySelector('.sidebar-user-info');
 
-      if (avatarEl) avatarEl.src = user.avatar || '/images/default-avatar.svg';
+      if (avatarEl) avatarEl.src = sanitizeURL(user.avatar, '/images/default-avatar.svg');
       if (nameEl) nameEl.textContent = user.name;
       if (handleEl) handleEl.textContent = `@${user.username}`;
-      if (linkEl) linkEl.href = `/profile.html?username=${user.username}`;
+      if (linkEl) linkEl.href = `/profile.html?username=${encodeURIComponent(user.username)}`;
     }
 
     // Populate profile nav links
     const profileNavLinks = document.querySelectorAll('.nav-profile-link');
     profileNavLinks.forEach((link) => {
-      link.href = `/profile.html?username=${user.username}`;
+      link.href = `/profile.html?username=${encodeURIComponent(user.username)}`;
     });
 
     // Mobile header avatar
     const mobileAvatar = document.getElementById('mobile-top-avatar');
     if (mobileAvatar) {
-      mobileAvatar.src = user.avatar || '/images/default-avatar.svg';
-      mobileAvatar.parentElement.href = `/profile.html?username=${user.username}`;
+      mobileAvatar.src = sanitizeURL(user.avatar, '/images/default-avatar.svg');
+      mobileAvatar.parentElement.href = `/profile.html?username=${encodeURIComponent(user.username)}`;
     }
 
     // Composer avatar if present
     const composerAvatar = document.getElementById('composer-avatar');
     if (composerAvatar) {
-      composerAvatar.src = user.avatar || '/images/default-avatar.svg';
+      composerAvatar.src = sanitizeURL(user.avatar, '/images/default-avatar.svg');
     }
 
     // Hide guest login button if present

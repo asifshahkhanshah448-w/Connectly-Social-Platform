@@ -20,7 +20,10 @@ export async function getCommentsForPost(req, res, next) {
       const json = comment.toJSON();
       return {
         ...json,
-        isOwner: currentUserId ? comment.author._id.toString() === currentUserId : false,
+        isOwner:
+          currentUserId && comment.author && comment.author._id
+            ? comment.author._id.toString() === currentUserId
+            : false,
       };
     });
 
@@ -43,7 +46,7 @@ export async function addComment(req, res, next) {
       return res.status(400).json({ success: false, message: 'Invalid post ID.' });
     }
 
-    if (!content || !content.trim()) {
+    if (typeof content !== 'string' || !content.trim()) {
       return res.status(400).json({ success: false, message: 'Comment content cannot be empty.' });
     }
 

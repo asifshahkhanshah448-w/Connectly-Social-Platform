@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Post from '../models/Post.js';
 import Comment from '../models/Comment.js';
 import User from '../models/User.js';
+import { isValidMediaUrl } from '../middleware/auth.js';
 
 export async function getPosts(req, res, next) {
   try {
@@ -10,7 +11,7 @@ export async function getPosts(req, res, next) {
     const skip = (page - 1) * limit;
 
     const query = {};
-    if (req.query.username) {
+    if (typeof req.query.username === 'string' && req.query.username.trim()) {
       const user = await User.findOne({ username: req.query.username.toLowerCase().trim() });
       if (!user) {
         return res.status(404).json({ success: false, message: 'User not found.' });
@@ -46,7 +47,7 @@ export async function getPosts(req, res, next) {
         ...json,
         likesCount: likesArray.length,
         isLiked: currentUserId ? likesArray.some((id) => id.toString() === currentUserId) : false,
-        isOwner: currentUserId ? post.author._id.toString() === currentUserId : false,
+        isOwner: currentUserId && post.author && post.author._id ? post.author._id.toString() === currentUserId : false,
         commentsCount: countMap.get(post._id.toString()) || 0,
       };
     });
@@ -91,7 +92,7 @@ export async function getPostById(req, res, next) {
         ...post.toJSON(),
         likesCount: likesArray.length,
         isLiked: currentUserId ? likesArray.some((uId) => uId.toString() === currentUserId) : false,
-        isOwner: currentUserId ? post.author._id.toString() === currentUserId : false,
+        isOwner: currentUserId && post.author && post.author._id ? post.author._id.toString() === currentUserId : false,
         commentsCount,
       },
     });
@@ -102,9 +103,9 @@ export async function getPostById(req, res, next) {
 
 export async function createPost(req, res, next) {
   try {
-    const { content, image } = req.body;
+    const { content, image } = req.body || {};
 
-    if (!content || !content.trim()) {
+    if (typeof content !== 'string' || !content.trim()) {
       return res.status(400).json({
         success: false,
         message: 'Post content cannot be empty.',
@@ -118,10 +119,17 @@ export async function createPost(req, res, next) {
       });
     }
 
+    if (image !== undefined && image !== null && image !== '' && !isValidMediaUrl(image)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image URL. Only HTTP, HTTPS, and safe raster images are allowed.',
+      });
+    }
+
     const post = new Post({
       author: req.user._id,
       content: content.trim(),
-      image: (image && image.trim()) || '',
+      image: (typeof image === 'string' && image.trim()) || '',
       likes: [],
     });
 
@@ -167,7 +175,7 @@ export async function updatePost(req, res, next) {
     }
 
     if (content !== undefined) {
-      if (!content.trim()) {
+      if (typeof content !== 'string' || !content.trim()) {
         return res.status(400).json({ success: false, message: 'Post content cannot be empty.' });
       }
       if (content.trim().length > 1000) {
@@ -177,7 +185,13 @@ export async function updatePost(req, res, next) {
     }
 
     if (image !== undefined) {
-      post.image = image.trim();
+      if (image !== '' && !isValidMediaUrl(image)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid image URL. Only HTTP, HTTPS, and safe raster images are allowed.',
+        });
+      }
+      post.image = typeof image === 'string' ? image.trim() : '';
     }
 
     await post.save();

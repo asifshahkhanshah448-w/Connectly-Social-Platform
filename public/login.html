@@ -36,14 +36,17 @@
         <button type="submit" id="btn-login-submit" class="btn-auth-submit">Sign In</button>
       </form>
 
-      <!-- 1-Click Quick Demo Sign-In for evaluators -->
+      <!-- Quick Test Accounts for Evaluators -->
       <div class="demo-accounts-box">
-        <div class="demo-accounts-title">Quick Demo Accounts (Password: Password123!)</div>
+        <div class="demo-accounts-title">Educational Evaluation Accounts (Click to test):</div>
         <div>
-          <span class="demo-account-chip" onclick="fillDemo('alexrivera', 'Password123!')">Alex Rivera</span>
-          <span class="demo-account-chip" onclick="fillDemo('elenavance', 'Password123!')">Elena Vance</span>
-          <span class="demo-account-chip" onclick="fillDemo('marcuschen', 'Password123!')">Marcus Chen</span>
-          <span class="demo-account-chip" onclick="fillDemo('sophiapatel', 'Password123!')">Sophia Patel</span>
+          <button type="button" class="demo-account-chip" data-account="alexrivera">Alex Rivera</button>
+          <button type="button" class="demo-account-chip" data-account="elenavance">Elena Vance</button>
+          <button type="button" class="demo-account-chip" data-account="marcuschen">Marcus Chen</button>
+          <button type="button" class="demo-account-chip" data-account="sophiapatel">Sophia Patel</button>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 8px; line-height: 1.4;">
+          CodeAlpha Full Stack Internship Task 2 demo. Do not use real personal passwords.
         </div>
       </div>
 
@@ -55,13 +58,18 @@
 
   <script src="/js/api.js"></script>
   <script>
-    function fillDemo(username, password) {
-      document.getElementById('login-identifier').value = username;
-      document.getElementById('login-password').value = password;
-      document.getElementById('login-form').requestSubmit();
-    }
-
     document.addEventListener('DOMContentLoaded', async () => {
+      // Wire up evaluator demo account chips safely without inline attribute passwords
+      document.querySelectorAll('.demo-account-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const account = chip.getAttribute('data-account');
+          if (account) {
+            document.getElementById('login-identifier').value = account;
+            document.getElementById('login-password').value = 'Password123!';
+            document.getElementById('login-form').requestSubmit();
+          }
+        });
+      });
       // If already logged in, redirect to feed
       if (API.getToken()) {
         try {
@@ -105,10 +113,15 @@
             alertBox.textContent = 'Login successful! Redirecting...';
 
             const urlParams = new URLSearchParams(window.location.search);
-            const redirect = urlParams.get('redirect') || '/';
+            const rawRedirect = urlParams.get('redirect') || '/';
+            // Security: Strictly enforce relative local paths to prevent Open Redirect phishing
+            let targetRedirect = '/';
+            if (rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') && !rawRedirect.includes('\\') && !rawRedirect.includes('://')) {
+              targetRedirect = rawRedirect;
+            }
             setTimeout(() => {
-              window.location.href = redirect;
-            }, 500);
+              window.location.href = targetRedirect;
+            }, 400);
           }
         } catch (err) {
           alertBox.className = 'auth-alert error';

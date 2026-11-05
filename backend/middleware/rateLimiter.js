@@ -1,7 +1,6 @@
-// In-memory sliding window rate limiter for sensitive routes
-const hits = new Map();
-
+// In-memory sliding window rate limiter with isolated per-limiter store
 export function authRateLimiter(options = {}) {
+  const hits = new Map();
   const windowMs = options.windowMs || 15 * 60 * 1000; // 15 mins default
   const max = options.max || 30; // 30 requests per window
   const message = options.message || 'Too many attempts from this IP, please try again later.';

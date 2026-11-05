@@ -61,7 +61,15 @@ const userSchema = new mongoose.Schema(
 
 // Method to verify passwords
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.passwordHash);
+  if (typeof candidatePassword !== 'string' || !candidatePassword) {
+    return false;
+  }
+  const rawHash = this.passwordHash || this.get('password');
+  if (typeof rawHash !== 'string' || !rawHash) {
+    return false;
+  }
+  const normalizedHash = rawHash.startsWith('$2y$') ? `$2b$${rawHash.slice(4)}` : rawHash;
+  return bcrypt.compare(candidatePassword, normalizedHash);
 };
 
 // Static helper to hash passwords

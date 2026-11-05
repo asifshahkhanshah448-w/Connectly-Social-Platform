@@ -2,17 +2,21 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Post from '../models/Post.js';
 import Follow from '../models/Follow.js';
+import { isValidMediaUrl } from '../middleware/auth.js';
 
 export async function getUsers(req, res, next) {
   try {
     const { search, limit = 20 } = req.query;
     const filter = {};
 
-    if (search && search.trim()) {
-      const q = search.trim();
+    if (typeof search === 'string' && search.trim()) {
+      const escapedQuery = search
+        .trim()
+        .slice(0, 64)
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { name: { $regex: q, $options: 'i' } },
-        { username: { $regex: q, $options: 'i' } },
+        { name: { $regex: escapedQuery, $options: 'i' } },
+        { username: { $regex: escapedQuery, $options: 'i' } },
       ];
     }
 
@@ -21,9 +25,10 @@ export async function getUsers(req, res, next) {
       filter._id = { $ne: req.user._id };
     }
 
+    const safeLimit = Math.max(1, Math.min(50, parseInt(limit, 10) || 20));
     const users = await User.find(filter)
       .select('name username bio avatar createdAt')
-      .limit(parseInt(limit, 10) || 20)
+      .limit(safeLimit)
       .sort({ createdAt: -1 });
 
     // If viewer is logged in, attach isFollowing flag
@@ -106,13 +111,19 @@ export async function updateProfile(req, res, next) {
     }
 
     if (name !== undefined) {
-      if (!name.trim()) {
+      if (typeof name !== 'string' || !name.trim()) {
         return res.status(400).json({ success: false, message: 'Name cannot be empty.' });
+      }
+      if (name.trim().length > 60) {
+        return res.status(400).json({ success: false, message: 'Full name cannot exceed 60 characters.' });
       }
       user.name = name.trim();
     }
 
     if (bio !== undefined) {
+      if (typeof bio !== 'string') {
+        return res.status(400).json({ success: false, message: 'Invalid bio format.' });
+      }
       if (bio.length > 200) {
         return res.status(400).json({ success: false, message: 'Bio cannot exceed 200 characters.' });
       }
@@ -120,7 +131,13 @@ export async function updateProfile(req, res, next) {
     }
 
     if (avatar !== undefined) {
-      user.avatar = avatar.trim();
+      if (avatar !== '' && !isValidMediaUrl(avatar)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid avatar URL. Only HTTP, HTTPS, and safe raster images are allowed.',
+        });
+      }
+      user.avatar = typeof avatar === 'string' ? avatar.trim() : '';
     }
 
     await user.save();

@@ -56,7 +56,7 @@ function renderProfileHeader(user) {
   if (topPostsCount) topPostsCount.textContent = `${user.postsCount || 0} posts`;
 
   const avatar = document.getElementById('profile-avatar');
-  if (avatar) avatar.src = user.avatar || '/images/default-avatar.svg';
+  if (avatar) avatar.src = sanitizeURL(user.avatar, '/images/default-avatar.svg');
 
   const fullname = document.getElementById('profile-fullname');
   if (fullname) fullname.textContent = user.name;
@@ -124,7 +124,7 @@ async function handleProfileFollowToggle() {
 
   try {
     if (isCurrentlyFollowing) {
-      const res = await API.delete(`/api/users/${profileUser._id}/follow`);
+      const res = await API.delete(`/api/users/${encodeURIComponent(profileUser._id)}/follow`);
       if (res.success) {
         btn.classList.remove('following');
         btn.textContent = 'Follow';
@@ -132,7 +132,7 @@ async function handleProfileFollowToggle() {
         showToast(`Unfollowed @${profileUser.username}`, 'info');
       }
     } else {
-      const res = await API.post(`/api/users/${profileUser._id}/follow`);
+      const res = await API.post(`/api/users/${encodeURIComponent(profileUser._id)}/follow`);
       if (res.success) {
         btn.classList.add('following');
         btn.textContent = 'Following';
@@ -215,7 +215,7 @@ async function loadFollowersList(userId) {
   container.innerHTML = `<div style="padding: 24px;"><div class="skeleton" style="height: 60px; margin-bottom: 8px;"></div><div class="skeleton" style="height: 60px;"></div></div>`;
 
   try {
-    const res = await API.get(`/api/users/${userId}/followers`);
+    const res = await API.get(`/api/users/${encodeURIComponent(userId)}/followers`);
     if (res.success) {
       container.innerHTML = '';
       if (res.followers.length === 0) {
@@ -239,8 +239,8 @@ async function loadFollowersList(userId) {
         item.style.borderBottom = '1px solid var(--border-subtle)';
 
         item.innerHTML = `
-          <a href="/profile.html?username=${user.username}" class="user-suggestion-link">
-            <img class="avatar avatar-sm" src="${user.avatar || '/images/default-avatar.svg'}" alt="${escapeHTML(user.name)}" />
+          <a href="/profile.html?username=${encodeURIComponent(user.username)}" class="user-suggestion-link">
+            <img class="avatar avatar-sm" src="${sanitizeURL(user.avatar, '/images/default-avatar.svg')}" alt="${escapeHTML(user.name)}" />
             <div class="user-names">
               <div class="user-fullname">${escapeHTML(user.name)}</div>
               <div class="user-handle">@${escapeHTML(user.username)}</div>
@@ -264,7 +264,7 @@ async function loadFollowingList(userId) {
   container.innerHTML = `<div style="padding: 24px;"><div class="skeleton" style="height: 60px; margin-bottom: 8px;"></div><div class="skeleton" style="height: 60px;"></div></div>`;
 
   try {
-    const res = await API.get(`/api/users/${userId}/following`);
+    const res = await API.get(`/api/users/${encodeURIComponent(userId)}/following`);
     if (res.success) {
       container.innerHTML = '';
       if (res.following.length === 0) {
@@ -288,8 +288,8 @@ async function loadFollowingList(userId) {
         item.style.borderBottom = '1px solid var(--border-subtle)';
 
         item.innerHTML = `
-          <a href="/profile.html?username=${user.username}" class="user-suggestion-link">
-            <img class="avatar avatar-sm" src="${user.avatar || '/images/default-avatar.svg'}" alt="${escapeHTML(user.name)}" />
+          <a href="/profile.html?username=${encodeURIComponent(user.username)}" class="user-suggestion-link">
+            <img class="avatar avatar-sm" src="${sanitizeURL(user.avatar, '/images/default-avatar.svg')}" alt="${escapeHTML(user.name)}" />
             <div class="user-names">
               <div class="user-fullname">${escapeHTML(user.name)}</div>
               <div class="user-handle">@${escapeHTML(user.username)}</div>

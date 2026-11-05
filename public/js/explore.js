@@ -91,15 +91,15 @@ function createExploreUserCard(user) {
   const followBtnHTML = isSelf
     ? `<span style="font-size: 0.8rem; color: var(--text-dim); font-weight: 500;">You</span>`
     : `
-      <button class="btn-follow ${user.isFollowing ? 'following' : ''}" onclick="event.stopPropagation(); handleExploreFollow('${user._id}', this)">
+      <button class="btn-follow ${user.isFollowing ? 'following' : ''}" onclick="event.stopPropagation(); handleExploreFollow('${escapeHTML(user._id)}', this)">
         ${user.isFollowing ? 'Following' : 'Follow'}
       </button>
     `;
 
   card.innerHTML = `
     <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;">
-      <a href="/profile.html?username=${user.username}" style="display: flex; gap: 14px; text-decoration: none; flex: 1; min-width: 0;">
-        <img class="avatar avatar-md" style="width: 48px; height: 48px;" src="${user.avatar || '/images/default-avatar.svg'}" alt="${escapeHTML(user.name)}" />
+      <a href="/profile.html?username=${encodeURIComponent(user.username)}" style="display: flex; gap: 14px; text-decoration: none; flex: 1; min-width: 0;">
+        <img class="avatar avatar-md" style="width: 48px; height: 48px;" src="${sanitizeURL(user.avatar, '/images/default-avatar.svg')}" alt="${escapeHTML(user.name)}" />
         <div style="flex: 1; min-width: 0;">
           <div style="display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;">
             <span style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">${escapeHTML(user.name)}</span>
@@ -118,7 +118,7 @@ function createExploreUserCard(user) {
 
   card.addEventListener('click', (e) => {
     if (!e.target.closest('button')) {
-      window.location.href = `/profile.html?username=${user.username}`;
+      window.location.href = `/profile.html?username=${encodeURIComponent(user.username)}`;
     }
   });
 
@@ -137,14 +137,14 @@ async function handleExploreFollow(userId, btn) {
 
   try {
     if (isCurrentlyFollowing) {
-      const res = await API.delete(`/api/users/${userId}/follow`);
+      const res = await API.delete(`/api/users/${encodeURIComponent(userId)}/follow`);
       if (res.success) {
         btn.classList.remove('following');
         btn.textContent = 'Follow';
         showToast('Unfollowed', 'info');
       }
     } else {
-      const res = await API.post(`/api/users/${userId}/follow`);
+      const res = await API.post(`/api/users/${encodeURIComponent(userId)}/follow`);
       if (res.success) {
         btn.classList.add('following');
         btn.textContent = 'Following';

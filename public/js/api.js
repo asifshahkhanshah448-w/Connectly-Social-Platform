@@ -120,12 +120,40 @@ function showToast(message, type = 'info') {
 
 function escapeHTML(str) {
   if (!str) return '';
-  return str
+  return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function sanitizeURL(url, fallback = '') {
+  if (!url || typeof url !== 'string') return fallback;
+  const trimmed = url.trim();
+  if (!trimmed) return fallback;
+
+  const encodeAttr = (str) =>
+    str.replace(/"/g, '%22').replace(/'/g, '%27').replace(/</g, '%3C').replace(/>/g, '%3E');
+
+  // Allow safe local relative paths
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//') && !trimmed.includes('\\')) {
+    return encodeAttr(trimmed);
+  }
+
+  // Allow http: and https: protocols only
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return encodeAttr(parsed.href);
+    }
+  } catch {
+    // Allow safe base64 raster image URLs only (exclude svg+xml to prevent Stored XSS)
+    if (/^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/i.test(trimmed)) {
+      return trimmed;
+    }
+  }
+  return fallback;
 }
 
 function formatTimeAgo(dateString) {

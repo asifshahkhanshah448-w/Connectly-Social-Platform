@@ -5,6 +5,7 @@ let hasMorePosts = false;
 let isLoadingPosts = false;
 let editingPostId = null;
 let deletingPostId = null;
+const loadedPostsMap = new Map();
 
 // Initialize Feed
 async function initFeed() {
@@ -84,9 +85,12 @@ async function loadPosts(page = 1, append = false) {
 }
 
 function createPostCardElement(post) {
+  const safePostId = escapeHTML(post._id);
   const card = document.createElement('article');
   card.className = 'post-card';
-  card.id = `post-${post._id}`;
+  card.id = `post-${safePostId}`;
+
+  loadedPostsMap.set(String(post._id), post);
 
   const author = post.author || {
     name: 'Anonymous',
@@ -94,26 +98,27 @@ function createPostCardElement(post) {
     avatar: '/images/default-avatar.svg',
   };
 
-  const imageHTML = post.image
-    ? `<div class="post-media-wrap"><img src="${escapeHTML(post.image)}" alt="Post attachment" loading="lazy" /></div>`
+  const safeImageUrl = sanitizeURL(post.image, '');
+  const imageHTML = safeImageUrl
+    ? `<div class="post-media-wrap"><img src="${safeImageUrl}" alt="Post attachment" loading="lazy" /></div>`
     : '';
 
   const dropdownHTML = post.isOwner
     ? `
       <div class="post-actions-menu">
-        <button class="post-menu-trigger" onclick="togglePostMenu('${post._id}')" aria-label="Post actions">
+        <button class="post-menu-trigger" onclick="togglePostMenu('${safePostId}')" aria-label="Post actions">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="1"></circle>
             <circle cx="19" cy="12" r="1"></circle>
             <circle cx="5" cy="12" r="1"></circle>
           </svg>
         </button>
-        <div class="post-dropdown" id="dropdown-${post._id}">
-          <button onclick="openEditModal('${post._id}', '${escapeHTML(post.content).replace(/'/g, "\\'")}', '${escapeHTML(post.image || '')}')">
+        <div class="post-dropdown" id="dropdown-${safePostId}">
+          <button onclick="openEditModal('${safePostId}')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             Edit
           </button>
-          <button class="danger" onclick="confirmDeletePost('${post._id}')">
+          <button class="danger" onclick="confirmDeletePost('${safePostId}')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             Delete
           </button>
@@ -122,15 +127,19 @@ function createPostCardElement(post) {
     `
     : '';
 
+  const commentAvatarSrc = Auth.user
+    ? sanitizeURL(Auth.user.avatar, '/images/default-avatar.svg')
+    : '/images/default-avatar.svg';
+
   card.innerHTML = `
     <div class="post-card-inner">
-      <a href="/profile.html?username=${author.username}">
-        <img class="avatar" src="${author.avatar || '/images/default-avatar.svg'}" alt="${escapeHTML(author.name)}" />
+      <a href="/profile.html?username=${encodeURIComponent(author.username)}">
+        <img class="avatar" src="${sanitizeURL(author.avatar, '/images/default-avatar.svg')}" alt="${escapeHTML(author.name)}" />
       </a>
       <div class="post-content-wrap">
         <div class="post-header">
           <div class="post-author-row">
-            <a href="/profile.html?username=${author.username}" class="post-author-name">${escapeHTML(author.name)}</a>
+            <a href="/profile.html?username=${encodeURIComponent(author.username)}" class="post-author-name">${escapeHTML(author.name)}</a>
             <span class="post-author-handle">@${escapeHTML(author.username)}</span>
             <span class="post-separator">·</span>
             <time class="post-time">${formatTimeAgo(post.createdAt)}</time>
@@ -138,32 +147,32 @@ function createPostCardElement(post) {
           ${dropdownHTML}
         </div>
 
-        <div class="post-body-text" id="post-body-${post._id}">${escapeHTML(post.content)}</div>
+        <div class="post-body-text" id="post-body-${safePostId}">${escapeHTML(post.content)}</div>
         ${imageHTML}
 
         <div class="post-interaction-row">
-          <button class="action-btn ${post.isLiked ? 'liked' : ''}" id="like-btn-${post._id}" onclick="handleLike('${post._id}')">
+          <button class="action-btn ${post.isLiked ? 'liked' : ''}" id="like-btn-${safePostId}" onclick="handleLike('${safePostId}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            <span id="like-count-${post._id}">${post.likesCount || 0}</span>
+            <span id="like-count-${safePostId}">${post.likesCount || 0}</span>
           </button>
 
-          <button class="action-btn" onclick="toggleCommentsDrawer('${post._id}')">
+          <button class="action-btn" onclick="toggleCommentsDrawer('${safePostId}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <span id="comment-count-${post._id}">${post.commentsCount || 0}</span>
+            <span id="comment-count-${safePostId}">${post.commentsCount || 0}</span>
           </button>
         </div>
 
         <!-- Comments Drawer -->
-        <div class="comments-drawer" id="comments-drawer-${post._id}">
+        <div class="comments-drawer" id="comments-drawer-${safePostId}">
           <div class="comment-input-row">
-            <img class="avatar avatar-sm" src="${Auth.user ? Auth.user.avatar || '/images/default-avatar.svg' : '/images/default-avatar.svg'}" alt="Your avatar" />
+            <img class="avatar avatar-sm" src="${commentAvatarSrc}" alt="Your avatar" />
             <div class="comment-input-wrap">
-              <input type="text" class="comment-input-field" id="comment-input-${post._id}" placeholder="Write a thoughtful comment..." maxlength="500" onkeydown="handleCommentKeyDown(event, '${post._id}')" />
-              <button class="btn-send-comment" onclick="submitComment('${post._id}')" aria-label="Post comment">
+              <input type="text" class="comment-input-field" id="comment-input-${safePostId}" placeholder="Write a thoughtful comment..." maxlength="500" onkeydown="handleCommentKeyDown(event, '${safePostId}')" />
+              <button class="btn-send-comment" onclick="submitComment('${safePostId}')" aria-label="Post comment">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="22" y1="2" x2="11" y2="13"></line>
                   <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -171,7 +180,7 @@ function createPostCardElement(post) {
               </button>
             </div>
           </div>
-          <div class="comments-list" id="comments-list-${post._id}">
+          <div class="comments-list" id="comments-list-${safePostId}">
             <!-- Loaded on drawer open -->
           </div>
         </div>
@@ -220,8 +229,16 @@ function initComposer() {
       const file = e.target.files[0];
       if (!file) return;
 
-      if (!file.type.startsWith('image/')) {
-        showToast('Please select a valid image file', 'error');
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type.toLowerCase())) {
+        showToast('Please select a valid PNG, JPG, WebP, or GIF image file', 'error');
+        imageInput.value = '';
+        return;
+      }
+
+      if (file.size > 2 * 1024 * 1024) {
+        showToast('Image file must be 2 MB or smaller', 'error');
+        imageInput.value = '';
         return;
       }
 
@@ -326,7 +343,7 @@ async function handleLike(postId) {
   countEl.textContent = wasLiked ? Math.max(0, currentCount - 1) : currentCount + 1;
 
   try {
-    const res = await API.post(`/api/posts/${postId}/like`);
+    const res = await API.post(`/api/posts/${encodeURIComponent(postId)}/like`);
     if (res.success) {
       btn.classList.toggle('liked', res.isLiked);
       countEl.textContent = res.likesCount;
@@ -363,7 +380,7 @@ async function loadCommentsForPost(postId) {
   listEl.innerHTML = `<div class="skeleton" style="height: 40px; border-radius: 8px;"></div>`;
 
   try {
-    const res = await API.get(`/api/posts/${postId}/comments`);
+    const res = await API.get(`/api/posts/${encodeURIComponent(postId)}/comments`);
     if (res.success) {
       listEl.innerHTML = '';
       if (res.comments.length === 0) {
@@ -381,23 +398,25 @@ async function loadCommentsForPost(postId) {
 }
 
 function createCommentElement(comment, postId) {
+  const safeCommentId = escapeHTML(comment._id);
+  const safePostId = escapeHTML(postId);
   const author = comment.author || { name: 'User', username: 'user', avatar: '/images/default-avatar.svg' };
   const div = document.createElement('div');
   div.className = 'comment-item';
-  div.id = `comment-${comment._id}`;
+  div.id = `comment-${safeCommentId}`;
 
   const deleteBtnHTML = comment.isOwner
-    ? `<button class="btn-delete-comment" onclick="deleteComment('${comment._id}', '${postId}')" title="Delete comment">Delete</button>`
+    ? `<button class="btn-delete-comment" onclick="deleteComment('${safeCommentId}', '${safePostId}')" title="Delete comment">Delete</button>`
     : '';
 
   div.innerHTML = `
-    <a href="/profile.html?username=${author.username}">
-      <img class="avatar avatar-sm" src="${author.avatar || '/images/default-avatar.svg'}" alt="${escapeHTML(author.name)}" />
+    <a href="/profile.html?username=${encodeURIComponent(author.username)}">
+      <img class="avatar avatar-sm" src="${sanitizeURL(author.avatar, '/images/default-avatar.svg')}" alt="${escapeHTML(author.name)}" />
     </a>
     <div class="comment-bubble">
       <div class="comment-meta">
         <div>
-          <a href="/profile.html?username=${author.username}" class="comment-author-name">${escapeHTML(author.name)}</a>
+          <a href="/profile.html?username=${encodeURIComponent(author.username)}" class="comment-author-name">${escapeHTML(author.name)}</a>
           <span style="font-size: 0.76rem; color: var(--text-dim); margin-left: 4px;">@${escapeHTML(author.username)}</span>
         </div>
         <div>
@@ -433,7 +452,7 @@ async function submitComment(postId) {
   if (!content) return;
 
   try {
-    const res = await API.post(`/api/posts/${postId}/comments`, { content });
+    const res = await API.post(`/api/posts/${encodeURIComponent(postId)}/comments`, { content });
     if (res.success && res.comment) {
       input.value = '';
       const listEl = document.getElementById(`comments-list-${postId}`);
@@ -455,7 +474,7 @@ async function submitComment(postId) {
 
 async function deleteComment(commentId, postId) {
   try {
-    const res = await API.delete(`/api/comments/${commentId}`);
+    const res = await API.delete(`/api/comments/${encodeURIComponent(commentId)}`);
     if (res.success) {
       const el = document.getElementById(`comment-${commentId}`);
       if (el) el.remove();
@@ -490,13 +509,14 @@ document.addEventListener('click', (e) => {
   }
 });
 
-function openEditModal(postId, content, image) {
+function openEditModal(postId) {
   editingPostId = postId;
+  const post = loadedPostsMap.get(String(postId));
   const textarea = document.getElementById('edit-post-content');
   const imageInput = document.getElementById('edit-post-image');
 
-  if (textarea) textarea.value = content;
-  if (imageInput) imageInput.value = image;
+  if (textarea) textarea.value = post ? post.content || '' : '';
+  if (imageInput) imageInput.value = post ? post.image || '' : '';
 
   openModal('modal-edit-post');
 }
@@ -527,7 +547,7 @@ function initModals() {
       saveBtn.textContent = 'Saving...';
 
       try {
-        const res = await API.put(`/api/posts/${editingPostId}`, { content, image });
+        const res = await API.put(`/api/posts/${encodeURIComponent(editingPostId)}`, { content, image });
         if (res.success && res.post) {
           const bodyEl = document.getElementById(`post-body-${editingPostId}`);
           if (bodyEl) bodyEl.textContent = res.post.content;
@@ -554,7 +574,7 @@ function initModals() {
       confirmDeleteBtn.textContent = 'Deleting...';
 
       try {
-        const res = await API.delete(`/api/posts/${deletingPostId}`);
+        const res = await API.delete(`/api/posts/${encodeURIComponent(deletingPostId)}`);
         if (res.success) {
           const card = document.getElementById(`post-${deletingPostId}`);
           if (card) card.remove();
@@ -591,19 +611,20 @@ async function loadSuggestions() {
       res.users.forEach((user) => {
         if (user.isSelf) return;
 
+        const safeUserId = escapeHTML(user._id);
         const div = document.createElement('div');
         div.className = 'user-suggestion-item';
-        div.id = `suggest-user-${user._id}`;
+        div.id = `suggest-user-${safeUserId}`;
 
         div.innerHTML = `
-          <a href="/profile.html?username=${user.username}" class="user-suggestion-link">
-            <img class="avatar avatar-sm" src="${user.avatar || '/images/default-avatar.svg'}" alt="${escapeHTML(user.name)}" />
+          <a href="/profile.html?username=${encodeURIComponent(user.username)}" class="user-suggestion-link">
+            <img class="avatar avatar-sm" src="${sanitizeURL(user.avatar, '/images/default-avatar.svg')}" alt="${escapeHTML(user.name)}" />
             <div class="user-names">
               <div class="user-fullname">${escapeHTML(user.name)}</div>
               <div class="user-handle">@${escapeHTML(user.username)}</div>
             </div>
           </a>
-          <button class="btn-follow ${user.isFollowing ? 'following' : ''}" onclick="toggleFollowUser('${user._id}', this)">
+          <button class="btn-follow ${user.isFollowing ? 'following' : ''}" onclick="toggleFollowUser('${safeUserId}', this)">
             ${user.isFollowing ? 'Following' : 'Follow'}
           </button>
         `;
@@ -628,14 +649,14 @@ async function toggleFollowUser(targetUserId, btn) {
 
   try {
     if (isCurrentlyFollowing) {
-      const res = await API.delete(`/api/users/${targetUserId}/follow`);
+      const res = await API.delete(`/api/users/${encodeURIComponent(targetUserId)}/follow`);
       if (res.success) {
         btn.classList.remove('following');
         btn.textContent = 'Follow';
         showToast('Unfollowed user', 'info');
       }
     } else {
-      const res = await API.post(`/api/users/${targetUserId}/follow`);
+      const res = await API.post(`/api/users/${encodeURIComponent(targetUserId)}/follow`);
       if (res.success) {
         btn.classList.add('following');
         btn.textContent = 'Following';
