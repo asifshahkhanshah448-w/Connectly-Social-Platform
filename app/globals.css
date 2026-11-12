@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --background: #faf9f6;
+  --foreground: #292524;
+  --primary-sage: #4f6f52;
+  --primary-sage-hover: #3d5640;
+  --sage-light: #e8efe9;
+  --sage-subtle: #f2f6f3;
+  --card-bg: #ffffff;
+  --border-subtle: #e7e5e4;
+}
+
+body {
+  background-color: #faf9f6;
+  color: #292524;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a29e;
+}

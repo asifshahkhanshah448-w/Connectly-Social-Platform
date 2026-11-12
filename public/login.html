@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — Connectly</title>
+  <link rel="stylesheet" href="/styles/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand-link">
+        <div class="brand-icon">C</div>
+        <span class="brand-text">Connectly</span>
+      </a>
+      <div>
+        <a href="/register.html" class="btn btn-secondary btn-sm">Create Account</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-subtitle">Sign in to your Connectly account</p>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label class="form-label">Email or Username</label>
+          <input type="text" id="identifier" class="form-control" required placeholder="elena_arch">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="password" class="form-control" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const identifier = document.getElementById('identifier').value;
+      const password = document.getElementById('password').value;
+      try {
+        await auth.login(identifier, password);
+        window.location.href = '/';
+      } catch (err) {
+        alert(err.message || 'Login failed');
+      }
+    });
+  </script>
+</body>
+</html>
